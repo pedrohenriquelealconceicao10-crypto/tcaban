@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Escolher tamanho</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 0 16px;
+        }
+
+        .tamanhos {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .tamanho {
+            padding: 15px;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .tamanho:hover {
+            background: #f0f0f0;
+        }
+
+        .tamanho.selecionado {
+            background: #28a745;
+            color: white;
+            border-color: #28a745;
+        }
+
+        #confirmar {
+            width: 100%;
+            padding: 14px;
+            margin-top: 25px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        #mensagem {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Faça seu pedido</h1>
+
+    <h2>Escolha o tamanho da pizza</h2>
+
+    <div class="tamanhos">
+        <button class="tamanho" type="button" data-id="1">Pequena</button>
+        <button class="tamanho" type="button" data-id="2">Média</button>
+        <button class="tamanho" type="button" data-id="3">Grande</button>
+    </div>
+
+    <button id="confirmar" type="button">Confirmar tamanho</button>
+
+    <p id="mensagem"></p>
+
+    <script>
+        const botoes = document.querySelectorAll(".tamanho");
+        const confirmar = document.getElementById("confirmar");
+        const mensagem = document.getElementById("mensagem");
+
+        let tamanhoSelecionado = null;
+
+        botoes.forEach(botao => {
+            botao.addEventListener("click", () => {
+                botoes.forEach(b => b.classList.remove("selecionado"));
+                botao.classList.add("selecionado");
+                tamanhoSelecionado = botao.dataset.id;
+                mensagem.textContent = "Tamanho selecionado: " + botao.textContent.trim();
+            });
+        });
+
+        confirmar.addEventListener("click", () => {
+            if (tamanhoSelecionado === null) {
+                mensagem.textContent = "Escolha um tamanho primeiro!";
+                return;
+            }
+
+            localStorage.setItem("id_tamanho", tamanhoSelecionado);
+            window.location.href = "bebidas.html";
+        });
+    </script>
+
+</body>
+</html>

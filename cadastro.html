@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cadastro de clientes</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 480px;
+      margin: 40px auto;
+      padding: 0 16px;
+    }
+
+    label {
+      display: block;
+      margin-top: 16px;
+    }
+
+    input, textarea, button {
+      box-sizing: border-box;
+      width: 100%;
+      padding: 10px;
+      margin-top: 6px;
+    }
+
+    button {
+      margin-top: 20px;
+      cursor: pointer;
+    }
+
+    #mensagem {
+      margin-top: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Cadastro de clientes</h1>
+
+  <form id="form-cliente">
+    <label for="nome">Nome</label>
+    <input id="nome" type="text" maxlength="50" required>
+
+    <label for="telefone">Telefone</label>
+    <input id="telefone" type="tel" maxlength="20" required>
+
+    <label for="endereco">Endereço</label>
+    <textarea id="endereco" maxlength="100" rows="3" required></textarea>
+
+    <button id="botao" type="submit">Cadastrar cliente</button>
+  </form>
+
+  <p id="mensagem" role="status"></p>
+
+  <script type="module">
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+    const SUPABASE_URL = "https://rbgivybmxavafmpwtqyq.supabase.co";
+    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_otkieo4qPOfdyf9o5hTGxQ_auG18kYj";
+    const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+    const form = document.getElementById("form-cliente");
+    const botao = document.getElementById("botao");
+    const mensagem = document.getElementById("mensagem");
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      botao.disabled = true;
+      mensagem.textContent = "Salvando cliente...";
+
+      const cliente = {
+        nome: document.getElementById("nome").value.trim(),
+        telefone: document.getElementById("telefone").value.trim(),
+        endereco: document.getElementById("endereco").value.trim()
+      };
+
+      const { data, error } = await supabase
+        .from("clientes")
+        .insert(cliente)
+        .select()
+        .single();
+
+      botao.disabled = false;
+
+      if (error) {
+        mensagem.textContent = `Erro ao cadastrar: ${error.message}`;
+        return;
+      }
+
+      localStorage.setItem("id_cliente", data.id);
+      mensagem.textContent = "Cliente cadastrado com sucesso! Redirecionando...";
+      form.reset();
+      window.location.href = "pedido.html";
+    });
+  </script>
+</body>
+</html>

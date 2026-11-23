@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Escolher condicionamento</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 0 16px;
+        }
+
+        .condicionamentos {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .condicionamento {
+            padding: 15px;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .condicionamento:hover {
+            background: #f0f0f0;
+        }
+
+        .condicionamento.selecionado {
+            background: #28a745;
+            color: white;
+            border-color: #28a745;
+        }
+
+        #confirmar {
+            width: 100%;
+            padding: 14px;
+            margin-top: 25px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        #mensagem {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Faça seu pedido</h1>
+
+    <h2>Escolha seu condicionamento</h2>
+
+    <div class="condicionamentos">
+        <!-- Ajuste os data-id e textos conforme os registros da sua tabela 'condionamentos' -->
+        <button class="condicionamento" type="button" data-id="1">
+            Ketchup
+        </button>
+
+        <button class="condicionamento" type="button" data-id="2">
+           mostarda
+        </button>
+
+        <button class="condicionamento" type="button" data-id="3">
+            Sem condicionamento
+        </button>
+    </div>
+
+    <button id="confirmar" type="button">
+        Confirmar condicionamento
+    </button>
+
+    <p id="mensagem"></p>
+
+    <script>
+        const botoes = document.querySelectorAll(".condicionamento");
+        const confirmar = document.getElementById("confirmar");
+        const mensagem = document.getElementById("mensagem");
+
+        let condicionamentoSelecionado = null;
+
+        botoes.forEach(botao => {
+            botao.addEventListener("click", () => {
+                botoes.forEach(b => b.classList.remove("selecionado"));
+                botao.classList.add("selecionado");
+
+                condicionamentoSelecionado = botao.dataset.id;
+                mensagem.textContent = "Condicionamento selecionado: " + botao.textContent.trim();
+            });
+        });
+
+        confirmar.addEventListener("click", () => {
+            if (condicionamentoSelecionado === null) {
+                mensagem.textContent = "Escolha um condicionamento primeiro!";
+                return;
+            }
+
+            // Salva o ID e vai para o resumo
+            localStorage.setItem("id_condionamento", condicionamentoSelecionado);
+            window.location.href = "resumo.html";
+        });
+    </script>
+
+</body>
+</html>

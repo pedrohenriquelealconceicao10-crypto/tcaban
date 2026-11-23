@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Resumo do Pedido</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 0 16px;
+      color: #333;
+    }
+
+    .card {
+      border: 2px solid #ccc;
+      border-radius: 8px;
+      padding: 20px;
+      margin-top: 20px;
+      background: #fafafa;
+    }
+
+    .card h2 {
+      margin-top: 0;
+      font-size: 18px;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 8px;
+    }
+
+    .linha-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px dashed #e0e0e0;
+    }
+
+    .linha-item:last-child {
+      border-bottom: none;
+    }
+
+    .total {
+      display: flex;
+      justify-content: space-between;
+      font-size: 20px;
+      font-weight: bold;
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 2px solid #333;
+      color: #28a745;
+    }
+
+    label {
+      display: block;
+      margin-top: 16px;
+      font-weight: bold;
+    }
+
+    textarea {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 10px;
+      margin-top: 6px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    #finalizar {
+      width: 100%;
+      padding: 14px;
+      margin-top: 25px;
+      background: #28a745;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    #finalizar:disabled {
+      background: #999;
+      cursor: not-allowed;
+    }
+
+    #mensagem {
+      margin-top: 16px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Resumo do Pedido</h1>
+
+  <div class="card">
+    <h2>Dados de Entrega</h2>
+    <p><strong>Cliente:</strong> <span id="cliente-nome">Carregando...</span></p>
+    <p><strong>Telefone:</strong> <span id="cliente-telefone">Carregando...</span></p>
+    <p><strong>Endereço:</strong> <span id="cliente-endereco">Carregando...</span></p>
+  </div>
+
+  <div class="card">
+    <h2>Itens Selecionados</h2>
+
+    <div class="linha-item">
+      <span id="desc-tamanho">Tamanho: ...</span>
+      <span id="preco-tamanho">R$ 0,00</span>
+    </div>
+
+    <div class="linha-item">
+      <span id="desc-sabor">Sabor (Cobertura): ...</span>
+      <span id="preco-sabor">R$ 0,00</span>
+    </div>
+
+    <div class="linha-item">
+      <span id="desc-borda">Borda: ...</span>
+      <span id="preco-borda">R$ 0,00</span>
+    </div>
+
+    <div class="linha-item">
+      <span id="desc-bebida">Bebida: ...</span>
+      <span id="preco-bebida">R$ 0,00</span>
+    </div>
+
+    <div class="linha-item">
+      <span id="desc-condicionamento">Condicionamento: ...</span>
+      <span id="preco-condicionamento">R$ 0,00</span>
+    </div>
+
+    <div class="total">
+      <span>Total do Pedido</span>
+      <span id="valor-total">R$ 0,00</span>
+    </div>
+  </div>
+
+  <label for="observacao">Observação do pedido (opcional):</label>
+  <textarea id="observacao" rows="2" maxlength="100" placeholder="Ex: Tirar cebola, campainha estragada..."></textarea>
+
+  <button id="finalizar" type="button">Confirmar e Enviar Pedido</button>
+  <p id="mensagem"></p>
+
+  <script type="module">
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+    const SUPABASE_URL = "https://rbgivybmxavafmpwtqyq.supabase.co";
+    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_otkieo4qPOfdyf9o5hTGxQ_auG18kYj";
+    const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+    const idCliente = localStorage.getItem("id_cliente");
+    const idSabor = localStorage.getItem("id_sabor");
+    const idTamanho = localStorage.getItem("id_tamanho");
+    const idBebida = localStorage.getItem("id_bebida");
+    const idBorda = localStorage.getItem("id_borda");
+    const idCondicionamento = localStorage.getItem("id_condionamento");
+
+    const mensagem = document.getElementById("mensagem");
+    const btnFinalizar = document.getElementById("finalizar");
+
+    let valorTotalCalculado = 0;
+
+    function formatarMoeda(valor) {
+      return Number(valor || 0).toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL"
+      });
+    }
+
+    async function carregarResumo() {
+      if (!idCliente || !idSabor || !idTamanho || !idBebida || !idBorda || !idCondicionamento) {
+        mensagem.style.color = "red";
+        mensagem.textContent = "Faltam informações do pedido. Volte e preencha todas as etapas.";
+        btnFinalizar.disabled = true;
+        return;
+      }
+
+      try {
+        const [
+          resCliente,
+          resTamanho,
+          resSabor,
+          resBorda,
+          resBebida,
+          resCondicionamento
+        ] = await Promise.all([
+          supabase.from("clientes").select("*").eq("id", Number(idCliente)).single(),
+          supabase.from("tamanhos").select("*").eq("id", Number(idTamanho)).single(),
+          supabase.from("coberturas").select("*").eq("id", Number(idSabor)).single(),
+          supabase.from("bordas").select("*").eq("id", Number(idBorda)).single(),
+          supabase.from("bebidas").select("*").eq("id", Number(idBebida)).single(),
+          supabase.from("condionamentos").select("*").eq("id", Number(idCondicionamento)).single()
+        ]);
+
+        if (resCliente.error) throw resCliente.error;
+        if (resTamanho.error) throw resTamanho.error;
+        if (resSabor.error) throw resSabor.error;
+        if (resBorda.error) throw resBorda.error;
+        if (resBebida.error) throw resBebida.error;
+        if (resCondicionamento.error) throw resCondicionamento.error;
+
+        const cliente = resCliente.data;
+        const tamanho = resTamanho.data;
+        const sabor = resSabor.data;
+        const borda = resBorda.data;
+        const bebida = resBebida.data;
+        const condicionamento = resCondicionamento.data;
+
+        document.getElementById("cliente-nome").textContent = cliente.nome;
+        document.getElementById("cliente-telefone").textContent = cliente.telefone;
+        document.getElementById("cliente-endereco").textContent = cliente.endereco;
+
+        document.getElementById("desc-tamanho").textContent = `Tamanho: ${tamanho.descricao}`;
+        document.getElementById("preco-tamanho").textContent = formatarMoeda(tamanho.preco_base);
+
+        document.getElementById("desc-sabor").textContent = `Sabor: ${sabor.descricao}`;
+        document.getElementById("preco-sabor").textContent = formatarMoeda(sabor.preco_adicional);
+
+        document.getElementById("desc-borda").textContent = `Borda: ${borda.descricao}`;
+        document.getElementById("preco-borda").textContent = formatarMoeda(borda.preco_adicional);
+
+        document.getElementById("desc-bebida").textContent = `Bebida: ${bebida.nome} (${bebida.tamanho})`;
+        document.getElementById("preco-bebida").textContent = formatarMoeda(bebida.preco_adicional);
+
+        document.getElementById("desc-condicionamento").textContent = `Condicionamento: ${condicionamento.descricao}`;
+        document.getElementById("preco-condicionamento").textContent = formatarMoeda(condicionamento.preco_adicional);
+
+        valorTotalCalculado =
+          Number(tamanho.preco_base) +
+          Number(sabor.preco_adicional) +
+          Number(borda.preco_adicional) +
+          Number(bebida.preco_adicional) +
+          Number(condicionamento.preco_adicional);
+
+        if (!Number.isFinite(valorTotalCalculado)) {
+          throw new Error("Valor total inválido calculado a partir dos preços.");
+        }
+
+        document.getElementById("valor-total").textContent = formatarMoeda(valorTotalCalculado);
+      } catch (erro) {
+        console.error(erro);
+        mensagem.style.color = "red";
+        mensagem.textContent = "Erro ao carregar dados do banco: " + erro.message;
+        btnFinalizar.disabled = true;
+      }
+    }
+
+    async function registrarPedidoNaTabela() {
+      const novoPedido = {
+        id_cliente: Number(idCliente),
+        data: new Date().toISOString(),
+        status: "Pendente",
+        valor: Number(valorTotalCalculado)
+      };
+
+      const { data, error } = await supabase
+        .from("pedidos")
+        .insert(novoPedido)
+        .select("id, id_cliente, data, status, valor")
+        .single();
+
+      if (error) {
+        throw new Error(`Tabela pedidos: ${error.message}`);
+      }
+
+      return data;
+    }
+
+    btnFinalizar.addEventListener("click", async () => {
+      btnFinalizar.disabled = true;
+      mensagem.style.color = "#333";
+      mensagem.textContent = "Registrando pedido na tabela...";
+
+      const observacaoTexto = (document.getElementById("observacao").value.trim() || "Sem observações").slice(0, 100);
+
+      try {
+        // 1. Registra o pedido na tabela `pedidos`
+        const pedidoCriado = await registrarPedidoNaTabela();
+
+        // 2. Registra o item do pedido e relações
+        const { data: itemCriado, error: errItem } = await supabase
+          .from("itens_pedidos")
+          .insert({
+            id_pedido: pedidoCriado.id,
+            id_tamanho: Number(idTamanho),
+            id_borda: Number(idBorda),
+            quantidade: 1,
+            observacao: observacaoTexto
+          })
+          .select("id")
+          .single();
+
+        if (errItem) {
+          throw new Error(`Tabela itens_pedidos: ${errItem.message}`);
+        }
+
+        const [resCob, resBeb, resCond] = await Promise.all([
+          supabase.from("itens_coberturas").insert({
+            id_item_pedido: itemCriado.id,
+            id_cobertura: Number(idSabor)
+          }),
+          supabase.from("itens_bebidas").insert({
+            id_item_pedido: itemCriado.id,
+            id_bebida: Number(idBebida)
+          }),
+          supabase.from("itens_condionamentos").insert({
+            id_item_pedido: itemCriado.id,
+            id_condionamento: Number(idCondicionamento)
+          })
+        ]);
+
+        if (resCob.error) throw new Error(`Tabela itens_coberturas: ${resCob.error.message}`);
+        if (resBeb.error) throw new Error(`Tabela itens_bebidas: ${resBeb.error.message}`);
+        if (resCond.error) throw new Error(`Tabela itens_condionamentos: ${resCond.error.message}`);
+
+        mensagem.style.color = "#28a745";
+        mensagem.textContent = `Pedido #${pedidoCriado.id} registrado com sucesso! (Valor: ${formatarMoeda(pedidoCriado.valor)})`;
+
+        localStorage.removeItem("id_sabor");
+        localStorage.removeItem("id_tamanho");
+        localStorage.removeItem("id_bebida");
+        localStorage.removeItem("id_borda");
+        localStorage.removeItem("id_condionamento");
+      } catch (erro) {
+        console.error(erro);
+        mensagem.style.color = "red";
+        mensagem.textContent = "Erro ao registrar pedido: " + erro.message;
+        btnFinalizar.disabled = false;
+      }
+    });
+
+    carregarResumo();
+  </script>
+
+</body>
+</html>
